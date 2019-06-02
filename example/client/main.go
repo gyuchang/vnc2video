@@ -4,14 +4,17 @@ import (
 	"context"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"syscall"
 	"time"
 	vnc "vnc2video"
-	"vnc2video/encoders"
+
 	log "github.com/sirupsen/logrus"
+
+	"vnc2video/encoders"
 )
 
 func main() {
@@ -66,22 +69,38 @@ func main() {
 	// 	fmt.Println(err)p
 	// 	os.Exit(1)
 	// }
+
+	// windows
+	// ffmpeg := "C:\\Users\\betzalel\\Dropbox\\go\\src\\vnc2video\\example\\client\\ffmpeg.exe"
+	ffmpeg := "/usr/local/bin/ffmpeg"
 	//vcodec := &encoders.MJPegImageEncoder{Quality: 60 , Framerate: framerate}
-	//vcodec := &encoders.X264ImageEncoder{FFMpegBinPath: "./ffmpeg", Framerate: framerate}
-	//vcodec := &encoders.HuffYuvImageEncoder{FFMpegBinPath: "./ffmpeg", Framerate: framerate}
-	vcodec := &encoders.QTRLEImageEncoder{FFMpegBinPath: "./ffmpeg", Framerate: framerate}
-	//vcodec := &encoders.VP8ImageEncoder{FFMpegBinPath:"./ffmpeg", Framerate: framerate}
-	//vcodec := &encoders.DV9ImageEncoder{FFMpegBinPath:"./ffmpeg", Framerate: framerate}
+	vcodec := &encoders.Encoder{
+		BinPath: ffmpeg,
+		Cmd: exec.Command(
+			ffmpeg,
+			"-f", "image2pipe",
+			"-vcodec", "ppm",
+			"-r", "15",
+			"-an",  // no audio
+			"-y",
+			"-i", "-",
+			"-vcodec", "libx264", //"libvpx",//"libvpx-vp9"//"libx264"
+			"-threads", "8",
+			"-preset", "fast",
+			"-g", "250",
+			"-crf", "37",
+			"./output.mp4",
+		),
+	}
+	//vcodec := &encoders.HuffYuvImageEncoder{BinPath: ffmpeg, Framerate: framerate, Filename: "./output.mp4"}
+	//vcodec := &encoders.QTRLEImageEncoder{BinPath: ffmpeg, Framerate: framerate, Filename: "./output.mp4"}
+	//vcodec := &encoders.VP8ImageEncoder{BinPath: ffmpeg, Framerate: framerate, Filename: "./output.mp4"}
+	//vcodec := &encoders.DV9ImageEncoder{BinPath: ffmpeg, Framerate: framerate, Filename: "./output.mp4"}
 
 	//counter := 0
 	//vcodec.Init("./output" + strconv.Itoa(counter))
 
-	go vcodec.Run("./output.mp4")
-	//windows
-	///go vcodec.Run("/Users/amitbet/Dropbox/go/src/vnc2webm/example/file-reader/ffmpeg", "./output.mp4")
-
-	//go vcodec.Run("C:\\Users\\betzalel\\Dropbox\\go\\src\\vnc2video\\example\\client\\ffmpeg.exe", "output.mp4")
-	//vcodec.Run("./output")
+	go vcodec.Run()
 
 	//screenImage := vnc.NewVncCanvas(int(cc.Width()), int(cc.Height()))
 
@@ -151,7 +170,7 @@ func main() {
 		case msg := <-cchClient:
 			log.Debugf("Received client message type:%v msg:%v\n", msg.Type(), msg)
 		case msg := <-cchServer:
-			//logger.Tracef("Received server message type:%v msg:%v\n", msg.Type(), msg)
+			//log.Debugf("Received server message type:%v msg:%v\n", msg.Type(), msg)
 
 			// out, err := os.Create("./output" + strconv.Itoa(counter) + ".jpg")
 			// if err != nil {
