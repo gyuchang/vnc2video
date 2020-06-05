@@ -49,7 +49,7 @@ func (enc *Encoder) Encode(img image.Image) {
 
 func (enc *Encoder) Close() {
 	enc.closed = true
-	//enc.input.Close()
+	enc.input.Close()
 	//enc.Cmd.Process.Signal(os.Interrupt)
 	//enc.Cmd.Process.Release()
 }
